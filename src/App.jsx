@@ -221,55 +221,36 @@ export default function ExpenseTracker() {
 
   /* ---------------- Persistence ---------------- */
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await window.storage.get(STORAGE_KEY, false);
-        if (!cancelled) {
-          if (res && res.value) {
-            const parsed = JSON.parse(res.value);
-            setExpenses(Array.isArray(parsed) ? parsed : []);
-          } else {
-            const seed = sampleData();
-            setExpenses(seed);
-            await window.storage.set(STORAGE_KEY, JSON.stringify(seed), false);
-          }
-        }
-      } catch (e) {
-        if (!cancelled) {
-          const seed = sampleData();
-          setExpenses(seed);
-          try {
-            await window.storage.set(STORAGE_KEY, JSON.stringify(seed), false);
-          } catch (e2) {}
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    try {
-      const savedTheme = window.localStorage ? null : null;
-    } catch (e) {}
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  /* ---------------- Persistence ---------------- */
 
-  const persist = useCallback(async (next) => {
-    setExpenses(next);
-    try {
-      await window.storage.set(STORAGE_KEY, JSON.stringify(next), false);
-    } catch (e) {
-      console.error("Storage error", e);
+useEffect(() => {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      setExpenses(Array.isArray(parsed) ? parsed : []);
+    } else {
+      const seed = sampleData();
+      setExpenses(seed);
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
     }
-  }, []);
+  } catch (e) {
+    console.error("Storage error:", e);
+    setExpenses([]);
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
-  const showToast = useCallback((msg) => {
-    setToast(msg);
-    window.clearTimeout(showToast._t);
-    showToast._t = window.setTimeout(() => setToast(""), 2500);
-  }, []);
+const persist = useCallback((next) => {
+  setExpenses(next);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch (e) {
+    console.error("Storage error:", e);
+  }
+}, []);
 
   /* ---------------- CRUD ---------------- */
 
